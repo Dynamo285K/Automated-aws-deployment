@@ -1,14 +1,14 @@
-# Automated aws deployment with Terraform and Ansible
+# AWS Infrastructure & Web Deployment Automation
 
-Fully automated provisioning and deployment pipeline for a static HTML website. This project uses Terraform to provision AWS infrastructure and Ansible with a dynamic inventory to configure the server and deploy the application.
+Fully automated provisioning and deployment pipeline for a static HTML website. This project uses Terraform to provision AWS infrastructure, Ansible with a dynamic inventory to configure the server, and Docker to ensure a 100% reproducible execution environment.
 
 ## Features
 
 **Infrastructure & Automation**
-* **Infrastructure as Code (Terraform):** Automatically provisions an AWS EC2 instance, Security Groups (Firewall), and configures SSH key pairs.
+* **Isolated Environment (Docker):** Zero local tool installation required. Terraform, Ansible, and AWS CLI are fully containerized.
+* **Infrastructure as Code (Terraform):** Automatically provisions an AWS EC2 instance, Security Groups, and SSH key pairs.
 * **One-Click Deployment Script:** A robust Bash script (`set -euo pipefail`) that handles the entire lifecycle: building infrastructure, waiting for initialization, running configuration, and cleaning up.
-* **Dynamic AWS Inventory:** Ansible automatically discovers the newly created EC2 instances based on Terraform tags (e.g., `Role = "app"`) using the `aws_ec2` plugin.
-* **Automated SSH Configuration:** The deployment script safely generates a dynamic SSH config file (`~/.ssh/config.d/aws_server`) and integrates it via the `Include` directive, allowing seamless connection without managing IPs manually.
+* **Dynamic AWS Inventory:** Ansible automatically discovers newly created EC2 instances based on Terraform tags (e.g., `Role = "app"`).
 
 **Configuration Management (Ansible Roles)**
 * **System Prep (`base` role):** Updates system packages and installs essential security utilities (like Fail2ban).
@@ -17,11 +17,19 @@ Fully automated provisioning and deployment pipeline for a static HTML website. 
 
 ## Prerequisites
 
-Before running the project, ensure you have the following installed on your local machine (or Docker container):
+* **Docker** and **Docker Compose** installed.
+* **AWS Credentials:** Configured on your host machine (usually located in `~/.aws/`).
+* **SSH Key Pair:** A local SSH private key (e.g., `~/.ssh/id_ed25519`).
 
-* **Terraform** (v1.0+)
-* **Ansible** (v2.9+)
-* **AWS CLI** configured with your credentials (`aws configure`)
-* **Python AWS Libraries:** Required for Ansible's dynamic inventory.
-  ```bash
-  pip3 install boto3 botocore
+*Note: Your credentials and keys are safely mounted into the container as read-only (`:ro`) and are never baked into the Docker image.*
+
+## Project Structure
+
+```text
+.
+├── Dockerfile              # Enterprise toolset image definition
+├── docker-compose.yml      # Container runtime config & volume mounts
+├── .dockerignore           # Prevents bloated image builds
+├── deploy.sh               # Main automation script
+├── terraform/              # Infrastructure definitions
+└── ansible/                # Configuration management
