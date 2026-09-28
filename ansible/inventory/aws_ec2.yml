@@ -1,0 +1,8 @@
+plugin: aws_ec2
+regions:
+  - eu-north-1
+hostnames:
+  - ip-address
+keyed_groups:
+  - prefix: tag
+    key: tags
