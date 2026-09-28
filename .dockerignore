@@ -1,0 +1,12 @@
+# Git
+.git/
+.gitignore
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Ansible
+*.retry
