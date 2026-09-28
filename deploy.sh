@@ -31,24 +31,9 @@ cd ..
 echo "2. Waiting 30 seconds until the system and SSH initialize"
 sleep 30
 
-
 echo "3. Starting Ansible configuration"
 cd ansible 
-ansible-playbook playbooks/setup.yml
+ansible-playbook -i ../ansible/inventory.ini playbooks/setup.yml
 cd ..
-
-
-echo  "4. Setting up SSH config"
-SERVER_IP=$(cd terraform && terraform output -raw instance_public_ip)
-
-mkdir -p ~/.ssh/config.d
-cat <<EOF > ~/.ssh/config.d/aws_server
-Host app
-    HostName $SERVER_IP
-    User ubuntu
-    IdentityFile ~/.ssh/aws-key
-    StrictHostKeyChecking no
-EOF
-
 
 echo "Done"
