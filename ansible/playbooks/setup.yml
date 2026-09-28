@@ -1,6 +1,6 @@
 ---
 - name: Server Configuration and Web Deployment
-  hosts: app
+  hosts: tag_Role_app
   become: yes
 
   roles:
