@@ -20,12 +20,26 @@ The project creates an isolated environment (VPC `10.0.0.0/16`) divided into two
 ## How to Run the Project
 
 ### Prerequisites
-* Installed `terraform`, `ansible`, and an `ssh` client.
-* Configured AWS credentials (e.g., via `aws configure` or environment variables).
+* Installed `docker` and `docker-compose`.
+* Configured AWS credentials (e.g., via `aws configure`, so they're available under `~/.aws`).
 * A local SSH key created (`~/.ssh/id_ed25519`).
 
-### Deployment
-The entire process (terraform apply + configuration generation + ansible playbook) is fully automated within a single script:
+> `terraform`, `ansible`, and `ssh` do not need to be installed locally — they run inside the Docker workspace container.
 
+### Deployment
+
+The project runs inside a Docker container that provides all required tools (`terraform`, `ansible`, `ssh`) pre-installed. It mounts your local SSH key (`~/.ssh`) and AWS credentials (`~/.aws`) into the container.
+
+1. **Build and start the workspace container** (in detached mode):
 ```bash
-./deploy.sh
+   docker compose up -d --build
+```
+
+2. **Attach to the running container:**
+```bash
+   docker compose exec workspace bash
+```
+
+3. **Inside the container**, run the automated deployment script (terraform apply + configuration generation + ansible playbook):
+```bash
+   ./deploy.sh
