@@ -1,6 +1,13 @@
 ---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Add bastion to known_hosts, so that Ansible can connect to it without prompting for confirmation
+      shell: "ssh-keyscan -t ed25519 {{ hostvars['bastion']['ansible_host'] }} >> ~/.ssh/known_hosts"
+      changed_when: true
+
 - name: Server Configuration and Web Deployment
-  hosts: tag_Role_app
+  hosts: app_servers
   become: yes
 
   roles:
