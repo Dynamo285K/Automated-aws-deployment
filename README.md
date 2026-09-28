@@ -1,35 +1,31 @@
-# AWS Infrastructure & Web Deployment Automation
+# Secure AWS Infrastructure Automation (Bastion + Private App Server)
 
-Fully automated provisioning and deployment pipeline for a static HTML website. This project uses Terraform to provision AWS infrastructure, Ansible with a dynamic inventory to configure the server, and Docker to ensure a 100% reproducible execution environment.
+A fully automated and secure AWS architecture running within the AWS Free Tier (t3.micro), built using Terraform and Ansible.
 
-## Features
+## Architecture
+The project creates an isolated environment (VPC `10.0.0.0/16`) divided into two parts:
+1. **Public Subnet:** Contains the Internet Gateway (IGW), NAT Gateway, and Bastion Host (public IP address, entry point).
+2. **Private Subnet:** Contains the App Server (private IP address `10.0.x.x`, without direct internet access).
+3. **Connectivity:** Secure access to the private server is provided via SSH ProxyJump through the Bastion Host.
 
-**Infrastructure & Automation**
-* **Isolated Environment (Docker):** Zero local tool installation required. Terraform, Ansible, and AWS CLI are fully containerized.
-* **Infrastructure as Code (Terraform):** Automatically provisions an AWS EC2 instance, Security Groups, and SSH key pairs.
-* **One-Click Deployment Script:** A robust Bash script (`set -euo pipefail`) that handles the entire lifecycle: building infrastructure, waiting for initialization, running configuration, and cleaning up.
-* **Dynamic AWS Inventory:** Ansible automatically discovers newly created EC2 instances based on Terraform tags (e.g., `Role = "app"`).
+---
 
-**Configuration Management (Ansible Roles)**
-* **System Prep (`base` role):** Updates system packages and installs essential security utilities (like Fail2ban).
-* **Web Server (`nginx` role):** Installs, configures, and manages the Nginx web server state.
-* **Deployment (`app` role):** Cleans the default web directory and automatically clones the latest static website code directly from GitHub.
+## Technologies Used
+* **Terraform:** Infrastructure provisioning, dynamic generation of the Ansible inventory, and local SSH configuration.
+* **Ansible:** Configuration management and application deployment (Roles: base, nginx, app, ssh).
+* **AWS:** VPC, Subnets, Internet/NAT Gateways, Security Groups, EC2 (`t3.micro`).
 
-## Prerequisites
+---
 
-* **Docker** and **Docker Compose** installed.
-* **AWS Credentials:** Configured on your host machine (usually located in `~/.aws/`).
-* **SSH Key Pair:** A local SSH private key (e.g., `~/.ssh/id_ed25519`).
+## How to Run the Project
 
-*Note: Your credentials and keys are never baked into the Docker image. They are mounted dynamically at runtime. Your AWS credentials are mounted as read-only (`:ro`), while your SSH directory requires write access so the deployment script can automatically generate the host configuration.*
+### Prerequisites
+* Installed `terraform`, `ansible`, and an `ssh` client.
+* Configured AWS credentials (e.g., via `aws configure` or environment variables).
+* A local SSH key created (`~/.ssh/id_ed25519`).
 
-## Project Structure
+### Deployment
+The entire process (terraform apply + configuration generation + ansible playbook) is fully automated within a single script:
 
-```text
-.
-├── Dockerfile              # Enterprise toolset image definition
-├── docker-compose.yml      # Container runtime config & volume mounts
-├── .dockerignore           # Prevents bloated image builds
-├── deploy.sh               # Main automation script
-├── terraform/              # Infrastructure definitions
-└── ansible/                # Configuration management
+```bash
+./deploy.sh
