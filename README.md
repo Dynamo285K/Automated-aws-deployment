@@ -21,7 +21,7 @@ Fully automated provisioning and deployment pipeline for a static HTML website. 
 * **AWS Credentials:** Configured on your host machine (usually located in `~/.aws/`).
 * **SSH Key Pair:** A local SSH private key (e.g., `~/.ssh/id_ed25519`).
 
-*Note: Your credentials and keys are safely mounted into the container as read-only (`:ro`) and are never baked into the Docker image.*
+*Note: Your credentials and keys are never baked into the Docker image. They are mounted dynamically at runtime. Your AWS credentials are mounted as read-only (`:ro`), while your SSH directory requires write access so the deployment script can automatically generate the host configuration.*
 
 ## Project Structure
 
