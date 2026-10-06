@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   workspace:
     build:
@@ -7,6 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: aws-automation-env
     volumes:
+      - .:/workspace
       - ~/.ssh:/root/.ssh
       - ~/.aws:/root/.aws:ro
     working_dir: /workspace
