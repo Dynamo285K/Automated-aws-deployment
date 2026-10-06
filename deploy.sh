@@ -5,21 +5,20 @@ set -euo pipefail
 
 echo "0. Checking and setting up SSH config"
 
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
+mkdir -p ~/.ssh/config.d
+chmod 700 ~/.ssh ~/.ssh/config.d
+touch ~/.ssh/config
+chmod 600 ~/.ssh/config
 
-if ! grep -q "^Include ~/.ssh/config.d/\*" ~/.ssh/config 2>/dev/null; then
+if ! grep -q "^Include ~/.ssh/config.d/\*" ~/.ssh/config; then
 	echo "Adding Include to the beginning of the ~/.ssh/config"
 
-	if [ -f ~/.ssh/config ]; then
-		echo "Include ~/.ssh/config.d/*" | cat - ~/.ssh/config > ~/.ssh/config.tmp 
-		mv ~/.ssh/config.tmp ~/.ssh/config
-	else
-		echo "Include ~/.ssh/config.d/*" > ~/.ssh/config
-	fi
+	# Include must be at the top, before any Host/Match block, to apply globally.
+	# Rewrite in place (cat >) instead of mv, so a symlinked config keeps its link and permissions.
+	{ echo "Include ~/.ssh/config.d/*"; cat ~/.ssh/config; } > ~/.ssh/config.tmp
+	cat ~/.ssh/config.tmp > ~/.ssh/config
+	rm ~/.ssh/config.tmp
 fi
-
-chmod 600 ~/.ssh/config
 
 echo "1. Preparing environment and building infrastructue with Terraform"
 

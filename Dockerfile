@@ -10,13 +10,16 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install --no-cache-dir ansible boto3 botocore awscli
 
-RUN curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o terraform.zip && \
-    unzip terraform.zip && \
+# Must not be older than the Terraform that last wrote terraform.tfstate, otherwise it refuses to read it
+ARG TERRAFORM_VERSION=1.9.8
+
+# dpkg reports amd64/arm64, matching HashiCorp's release naming (works on Intel and Apple Silicon)
+RUN ARCH="$(dpkg --print-architecture)" && \
+    curl -fsSL "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip" -o terraform.zip && \
+    unzip terraform.zip terraform && \
     mv terraform /usr/local/bin/ && \
     rm terraform.zip
 
+# The project is bind-mounted here by docker-compose.yml, so terraform.tfstate and
+# generated files persist on the host instead of dying with the container
 WORKDIR /workspace
-
-COPY . /workspace/
-
-RUN chmod 700 deploy.sh
