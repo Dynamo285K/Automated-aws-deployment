@@ -18,6 +18,6 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_key_pair" "my_ssh_key" {
-    key_name  = "terraform-aws-key"
-    public_key = file("~/.ssh/id_ed25519.pub")    
+  key_name   = "terraform-aws-key"
+  public_key = file("~/.ssh/id_ed25519.pub")
 }
