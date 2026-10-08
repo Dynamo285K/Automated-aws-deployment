@@ -1,11 +1,11 @@
-variable "instance_name" {
-  description = "Name of the EC2 instance"
+variable "bastion_instance_type" {
+  description = "Type of the bastion EC2 instance, e.g. t3.micro"
   type        = string
-  default     = "AWS-server"
+  default     = "t3.micro"
 }
 
-variable "instance_type" {
-  description = "Type of the EC2 instance"
+variable "app_instance_type" {
+  description = "Type of the app EC2 instance, e.g. t3.micro"
   type        = string
   default     = "t3.micro"
 }
