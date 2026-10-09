@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install --no-cache-dir ansible boto3 botocore awscli
 
 # Must not be older than the Terraform that last wrote terraform.tfstate, otherwise it refuses to read it
-ARG TERRAFORM_VERSION=1.9.8
+ARG TERRAFORM_VERSION=1.16.2
 
 # dpkg reports amd64/arm64, matching HashiCorp's release naming (works on Intel and Apple Silicon)
 RUN ARCH="$(dpkg --print-architecture)" && \
