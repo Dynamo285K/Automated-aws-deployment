@@ -11,3 +11,6 @@ ansible/inventory.ini
 
 # Terravision
 architecture-aws.*
+
+# Backend config (contains account ID)
+terraform/backend.hcl
