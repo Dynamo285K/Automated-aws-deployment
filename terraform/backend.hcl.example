@@ -1,0 +1,3 @@
+bucket  = "automated-aws-deployment-tfstate-<account-id>"
+profile = "default"
+
