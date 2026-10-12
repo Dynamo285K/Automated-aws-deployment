@@ -41,3 +41,7 @@ resource "local_file" "ssh_config" {
   file_permission      = "0600"
   directory_permission = "0700"
 }
+
+output "app_bucket_name" {
+  value = aws_s3_bucket.app.bucket
+}

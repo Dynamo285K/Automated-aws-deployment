@@ -25,6 +25,7 @@ Terraform builds an isolated AWS network with a bastion host and a private web s
 - **Bastion host:** the only machine with a public IP. SSH (port 22) is the only port open to the internet.
 - **App server:** has a private IP only. It accepts SSH only from the bastion's security group and HTTP only from inside the VPC.
 - **NAT Gateway:** lets the app server download packages and the website, while the internet still can't reach it.
+- **S3 bucket + IAM role:** the app server can read files from its own private S3 bucket. It gets temporary credentials from an IAM role, so no AWS keys are stored on the server. The bastion has no role and no AWS access.
 
 Region: `eu-north-1` (Stockholm). Both instances are `t3.micro` running Ubuntu 22.04.
 
@@ -34,6 +35,8 @@ Region: `eu-north-1` (Stockholm). Both instances are `t3.micro` running Ubuntu 2
 - VPC, public and private subnet, Internet Gateway, NAT Gateway with an Elastic IP, and route tables (module [modules/network](terraform/modules/network/))
 - Security groups for the bastion and the app server
 - An EC2 key pair created from your `~/.ssh/id_ed25519.pub`, plus both instances (module [modules/instances](terraform/modules/instances/), called once for each)
+- A private S3 bucket for the app server, with a test file `hello.txt` ([s3.tf](terraform/s3.tf))
+- An IAM role for the app server that can only list that bucket and read files from it, attached to the instance through an instance profile ([iam.tf](terraform/iam.tf))
 - Two generated local files:
   - `ansible/inventory.ini`: the server IPs Ansible connects to
   - `~/.ssh/config.d/aws-deployment`: SSH aliases (`aws-bastion`, `aws-app`) for you
@@ -42,7 +45,7 @@ Region: `eu-north-1` (Stockholm). Both instances are `t3.micro` running Ubuntu 2
 
 | Role    | What it does                                                                   | Tags              |
 |---------|--------------------------------------------------------------------------------|-------------------|
-| `base`  | `apt` upgrade, basic utilities, and `fail2ban`                                 | `base`, `setup`   |
+| `base`  | `apt` upgrade, basic utilities, `fail2ban`, and the AWS CLI (snap)             | `base`, `setup`   |
 | `nginx` | Installs and enables Nginx                                                     | `nginx`, `web`    |
 | `app`   | Clones [gh-deployment-workflow](https://github.com/Dynamo285K/gh-deployment-workflow) into `/var/www/html` | `app`, `web` |
 | `ssh`   | Adds an extra authorized public key for the `ubuntu` user                      | `ssh`, `security` |
@@ -50,7 +53,7 @@ Region: `eu-north-1` (Stockholm). Both instances are `t3.micro` running Ubuntu 2
 ## Prerequisites
 
 - Docker with Docker Compose
-- AWS credentials in `~/.aws`, for example from `aws configure`. The `default` profile is used. Besides EC2 and VPC, it needs access to S3 for the state bucket.
+- AWS credentials in `~/.aws`, for example from `aws configure`. The `default` profile is used. Besides EC2 and VPC, it needs access to S3 (state and app buckets) and IAM (to create the app server's role).
 - An SSH key at `~/.ssh/id_ed25519`, which you can create with `ssh-keygen -t ed25519`
 
 You don't need to install `terraform`, `ansible`, or the AWS CLI locally. They're all in the container.
@@ -114,6 +117,23 @@ The app server isn't reachable from the internet. To view the website, forward a
 ssh -L 8080:localhost:80 aws-app
 ```
 
+### Reading S3 from the app server
+
+The app server's IAM role allows exactly two actions on its own bucket: `s3:ListBucket` and `s3:GetObject`. Everything else is denied. Get the bucket name with `terraform output app_bucket_name` (in `terraform/`), then on the app server:
+
+```bash
+ssh aws-app
+aws sts get-caller-identity                       # assumed-role/app-server-role/i-...
+aws s3 ls s3://<bucket>                           # works: lists hello.txt
+aws s3 cp s3://<bucket>/hello.txt -               # works: prints the file
+aws s3 rm s3://<bucket>/hello.txt                 # AccessDenied: no s3:DeleteObject
+aws ec2 describe-instances --region eu-north-1    # UnauthorizedOperation: no EC2 access
+```
+
+The AWS CLI finds the role's credentials through the instance metadata service and renews them before they expire. There's nothing to configure on the server.
+
+### Re-running Ansible
+
 To re-run only part of the configuration, run the playbook from the `ansible/` folder with a tag:
 
 ```bash
@@ -128,7 +148,7 @@ cd terraform
 terraform destroy
 ```
 
-This removes all AWS resources, `ansible/inventory.ini`, and `~/.ssh/config.d/aws-deployment`. Your own `~/.ssh/config` is left as it is.
+This removes all AWS resources, `ansible/inventory.ini`, and `~/.ssh/config.d/aws-deployment`. Your own `~/.ssh/config` is left as it is. The app bucket has `force_destroy = true`, so it's deleted together with everything in it.
 
 The state bucket isn't removed, and the state in it is left empty, ready for the next deploy. The bucket costs a fraction of a cent per month. It has `prevent_destroy` set, so `terraform destroy` in `bootstrap/` refuses to delete it. To remove it for good, delete that `lifecycle` block, delete every object version in the bucket, and then run `terraform destroy` in `bootstrap/`.
 
@@ -156,6 +176,8 @@ The state bucket isn't removed, and the state in it is left empty, ready for the
 │   ├── networking.tf      # calls modules/network
 │   ├── security.tf        # security groups
 │   ├── instances.tf       # calls modules/instances for the bastion and the app server
+│   ├── s3.tf              # app bucket + test file
+│   ├── iam.tf             # app server role, read-only S3 policy, instance profile
 │   ├── output.tf          # outputs + generated inventory and SSH config
 │   ├── variables.tf
 │   └── modules/
@@ -173,3 +195,5 @@ The state bucket isn't removed, and the state in it is left empty, ready for the
 - **Host key checking is disabled** (`StrictHostKeyChecking no`, `host_key_checking = False`), because the IPs change with every deploy.
 - **The AMI is resolved with `most_recent = true`.** When Canonical publishes a new Ubuntu image, `terraform plan` will want to replace both instances.
 - **AWS access uses long-lived keys from `aws configure`.** Short-lived credentials from IAM Identity Center (`aws sso login`) would be safer.
+- **IMDSv2 isn't enforced on the instances.** Setting `metadata_options { http_tokens = "required" }` would better protect the role's credentials against SSRF.
+- **The app bucket uses `force_destroy = true`.** That's convenient for a demo, but in production a `destroy` would wipe its data.

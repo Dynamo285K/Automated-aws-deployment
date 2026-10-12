@@ -21,3 +21,8 @@
     name: fail2ban
     state: started
     enabled: yes
+
+- name: Install aws CLI for debugging
+  community.general.snap:
+    name: aws-cli
+    classic: true
